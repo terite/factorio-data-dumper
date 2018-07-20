@@ -142,17 +142,13 @@ end
 
 local function process_entities(data)
     local entity_map = {
-        ["accumulator"] = {},
         ["assembling-machine"] = {},
-        ["boiler"] = {},
         ["furnace"] = {},
-        ["generator"] = {},
         ["mining-drill"] = {},
         ["offshore-pump"]= {},
         ["reactor"] = {},
         ["resource"] = {},
         ["rocket-silo"] = {},
-        ["solar-panel"] = {},
         
     }
     for _, entity in pairs(game.entity_prototypes) do
