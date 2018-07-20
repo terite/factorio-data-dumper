@@ -6,12 +6,6 @@ require("util")
 -- items that are not part of a recipe but should be copied anyway
 local special_items = {
     "space-science-pack",
-    "cube-g85a50-on-white",
-    "cube-g85a66-on-white",
-    "cube-green-on-white",
-    "cube-g85a66-on-g85a66-on-black",
-    "cube-r85a66-on-g85a66-on-black",
-    "cube-g85a66-on-black"
 }
 
 local function round2(num, numDecimalPlaces)
