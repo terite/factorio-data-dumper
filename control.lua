@@ -419,8 +419,8 @@ local function generate_data()
         items = {},
         groups = {},
         fluids = {},
-        modules = {},
         fuel = {},
+        modules = {},
     }
     
     data._icons = json.decode(game.item_prototypes["data-dumper-transporter"].localised_name[1])
@@ -431,6 +431,10 @@ local function generate_data()
     process_entities(data)
     process_items(data, used_items)
     process_fluids(data, used_fluids)
+
+    table.sort(data.fluids)
+    table.sort(data.fuel)
+    table.sort(data.modules)
     
     data._icons = nil
     
