@@ -160,7 +160,6 @@ local function process_entities(data)
             local icon_data = load_icons(data, {{entity.type, entity.name}})
             edata = {
                 name = entity.name,
-                localised_name = entity.localised_name,
                 icon = icon_data.icon,
                 icon_size = icon_data.icon_size,
                 icons = icon_data.icons
@@ -274,7 +273,6 @@ local function process_items(data, used_items)
             local idata = {
                 group = item.group.name,
                 name = item.name,
-                localised_name = item.localised_name,
                 order = item.order,
                 subgroup = item.subgroup.name,
                 type = item.type,
@@ -318,7 +316,6 @@ local function process_fluids(data, used_fluids)
         data.items[fluid.name] = {
             group = fluid.group.name,
             name = fluid.name,
-            localised_name = fluid.localised_name,
             order = fluid.order,
             subgroup = fluid.subgroup.name,
             type = "fluid",
@@ -389,7 +386,6 @@ local function process_recipes(data)
                 energy_required = recipe.energy,
                 ingredients = ingredients,
                 name = recipe.name,
-                localised_name = recipe.localised_name,
                 order = recipe.order,
                 results = products,
                 subgroup = recipe.subgroup.name,
