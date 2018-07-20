@@ -108,7 +108,7 @@ local function get_used_items()
         end
     end
 
-    local function add_prototypes(list) do
+    local function add_prototypes(list)
         for _, proto in pairs(list) do
             used_items[proto.name] = true
         end
