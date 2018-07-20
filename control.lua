@@ -94,6 +94,52 @@ local function load_icons(data, paths)
 
 end
 
+local function get_used_items()
+    used_items = {}
+    used_fluids = {}
+
+    local function add_ingredients(list)
+        for _, entry in pairs(list) do
+            if entry.type == 'fluid' then
+                used_fluids[entry.name] = true
+            else
+                used_items[entry.name] = true
+            end
+        end
+    end
+
+    local function add_prototypes(list) do
+        for _, proto in pairs(list) do
+            used_items[proto.name] = true
+        end
+    end
+
+    for _, recipe in pairs(game.recipe_prototypes) do
+        add_ingredients(recipe.ingredients)
+        add_ingredients(recipe.products)
+    end
+
+    for _, item in pairs(game.item_prototypes) do
+        if item.burnt_result then
+            used_items[item.burnt_result.name] = true
+        end
+        add_ingredients(item.rocket_launch_products)
+    end
+
+    for _, tech in pairs(game.technology_prototypes) do
+        add_ingredients(tech.research_unit_ingredients)
+    end
+
+    for key, _ in pairs(used_items) do
+        used_items[key] = game.item_prototypes[key]
+    end
+    for key, _ in pairs(used_fluids) do
+        used_fluids[key] = game.fluid_prototypes[key]
+    end
+
+    return used_items, used_fluids
+end
+
 local function process_entities(data)
     local entity_map = {
         ["accumulator"] = {},
@@ -286,16 +332,12 @@ local function process_fluids(data, used_fluids)
 end
 
 local function process_recipes(data)
-
     local ignoresubgroup = {
         ["fill-barrel"] = true,
         ["empty-barrel"] = true,
     }
     data.recipes = {}
 
-    local used_fluids = {}    
-    local used_items = {}
-    
     for _, name in ipairs(special_items) do
         used_items[name] = game.item_prototypes[name]
     end    
@@ -321,11 +363,6 @@ local function process_recipes(data)
             
             local products = table.deepcopy(recipe.products)
             for _, product in pairs(products) do
-                if product.type == "item" then
-                    used_items[product.name] = game.item_prototypes[product.name]
-                else
-                    used_fluids[product.name] = game.fluid_prototypes[product.name]
-                end
                 if product.amount_min ~= nil and (product.amount_min == product.amount_max) then
                     product.amount = product.amount_min
                     product.amount_min = nil
@@ -341,11 +378,6 @@ local function process_recipes(data)
             
             local ingredients = table.deepcopy(recipe.ingredients)
             for _, ingredient in pairs(ingredients) do
-                if ingredient.type == "item" then
-                    used_items[ingredient.name] = game.item_prototypes[ingredient.name]
-                else
-                    used_fluids[ingredient.name] = game.fluid_prototypes[ingredient.name]
-                end
                 if ingredient.type == "item" then
                     ingredient.type = nil
                 end
@@ -371,7 +403,6 @@ local function process_recipes(data)
             }
         end
     end
-    return used_items, used_fluids
 end
 
 local function format_groups(groups)
@@ -402,7 +433,9 @@ local function generate_data()
     
     data._icons = json.decode(game.item_prototypes["data-dumper-transporter"].localised_name[1])
 
-    used_items, used_fluids = process_recipes(data)
+    used_items, used_fluids = get_used_items()
+
+    process_recipes(data)
     process_entities(data)
     process_items(data, used_items)
     process_fluids(data, used_fluids)
