@@ -1,5 +1,4 @@
 local json = require("json")
-local md5 = require("md5")
 
 -- for table.deepcopy
 require("util")
@@ -454,13 +453,6 @@ end)
 script.on_nth_tick(1, function()
     script.on_nth_tick(1, nil)
 
-    local hash = md5.new()
-    for mod_name, mod_version in pairsByKeys(game.active_mods) do
-        hash:update(mod_name)
-        hash:update(mod_version)
-    end
-
-    filename = "gamedata-" .. md5.tohex(hash:finish()) .. ".json"
-    game.write_file(filename, generate_data())
-    print("Dumped to " .. filename)
+    game.write_file("gamedata.json", generate_data())
+    print("Dumped to gamedata.json")
 end)
