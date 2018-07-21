@@ -293,7 +293,9 @@ local function process_items(data, used_items)
             end
             
             if item.fuel_category ~= nil then
-                table.insert(data.fuel, item.name)
+                if item.fuel_category == "chemical" then
+                    table.insert(data.fuel, item.name)
+                end
                 idata.fuel_category = item.fuel_category
                 idata.fuel_value = item.fuel_value
             end
