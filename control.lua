@@ -3,11 +3,6 @@ local json = require("json")
 -- for table.deepcopy
 require("util")
 
--- items that are not part of a recipe but should be copied anyway
-local special_items = {
-    "space-science-pack",
-}
-
 local function round2(num, numDecimalPlaces)
   return tonumber(string.format("%." .. (numDecimalPlaces or 0) .. "f", num))
 end
@@ -332,10 +327,6 @@ local function process_recipes(data)
     }
     data.recipes = {}
 
-    for _, name in ipairs(special_items) do
-        used_items[name] = game.item_prototypes[name]
-    end    
-    
     for key, recipe in pairs(game.recipe_prototypes) do
         data.groups[recipe.group.name] = recipe.group
         if ignoresubgroup[recipe.subgroup.name] == nil then
