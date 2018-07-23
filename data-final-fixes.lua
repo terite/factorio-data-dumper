@@ -1,14 +1,24 @@
-local storage = {}
 local json = require("json")
+
+local storage = {
+    icons = {},
+    main_products = {}
+}
 
 for _, protos in pairs(data.raw) do
     for _, proto in pairs(protos) do
-        storage[proto.type] = storage[proto.type] or {}
-        storage[proto.type][proto.name] = {
+        storage.icons[proto.type] = storage.icons[proto.type] or {}
+        storage.icons[proto.type][proto.name] = {
             icon = proto.icon,
             icon_size = proto.icon_size,
             icons = proto.icons
         }
+    end
+end
+
+for recipe in pairs(data.raw['recipe']) do
+    if recipe.main_product ~= nil then
+        storage.main_products[recipe.name] = recipe.main_product
     end
 end
 

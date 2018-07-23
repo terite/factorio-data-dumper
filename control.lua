@@ -385,6 +385,7 @@ local function process_recipes(data)
                 name = recipe.name,
                 order = recipe.order,
                 results = products,
+                main_product = data._main_products[recipe.name],
                 subgroup = recipe.subgroup.name,
                 requester_paste_multiplier = pmult,
                 type = "recipe",
@@ -424,7 +425,9 @@ local function generate_data()
         modules = {},
     }
     
-    data._icons = json.decode(game.item_prototypes["data-dumper-transporter"].localised_name[1])
+    storage = json.decode(game.item_prototypes["data-dumper-transporter"].localised_name[1])
+    data._icons = storage.icons
+    data._main_products = storage.main_products
 
     used_items, used_fluids = get_used_items()
 
