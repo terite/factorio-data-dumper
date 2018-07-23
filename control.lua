@@ -386,6 +386,7 @@ local function process_recipes(data)
                 order = recipe.order,
                 results = products,
                 main_product = data._main_products[recipe.name],
+                group = recipe.group.name,
                 subgroup = recipe.subgroup.name,
                 requester_paste_multiplier = pmult,
                 type = "recipe",
