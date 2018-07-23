@@ -19,6 +19,10 @@ end
 for _, recipe in pairs(data.raw['recipe']) do
     if recipe.main_product ~= nil then
         storage.main_products[recipe.name] = recipe.main_product
+    elseif recipe.normal ~= nil and recipe.normal.main_product ~= nil then
+        storage.main_products[recipe.name] = recipe.normal.main_product
+    elseif recipe.expensive ~= nil and recipe.expensive.main_product ~= nil then
+        storage.main_products[recipe.name] = recipe.expensive.main_product
     end
 end
 
