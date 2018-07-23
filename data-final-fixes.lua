@@ -16,7 +16,7 @@ for _, protos in pairs(data.raw) do
     end
 end
 
-for recipe in pairs(data.raw['recipe']) do
+for _, recipe in pairs(data.raw['recipe']) do
     if recipe.main_product ~= nil then
         storage.main_products[recipe.name] = recipe.main_product
     end

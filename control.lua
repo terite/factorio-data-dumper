@@ -55,25 +55,6 @@ local function get_energy_source(entity)
     return nil
 end
 
-local function load_icons(data, paths)
-    for _, path in ipairs(paths) do
-        local itype = path[1]
-        local iname = path[2]
-        
-        if data._icons[itype] == nil then
-            error("No icons at all for type " .. itype)
-        end
-        
-        icons = data._icons[itype][iname]
-        if icons ~= nil then
-            return icons
-        end
-    end
-    
-    error("no icon for " .. serpent.block(paths))
-
-end
-
 local function get_used_items()
     used_items = {}
     used_fluids = {}
@@ -133,7 +114,8 @@ local function process_entities(data)
     }
     for _, entity in pairs(game.entity_prototypes) do
         if entity_map[entity.type] ~= nil then
-            local icon_data = load_icons(data, {{entity.type, entity.name}})
+            local icon_data = data._icons[entity.type][entity.name]
+            assert(icon_data ~= nil) -- entities must have icons
             edata = {
                 name = entity.name,
                 icon = icon_data.icon,
@@ -245,7 +227,8 @@ local function process_items(data, used_items)
     for _, item in pairs(used_items) do
         data.groups[item.group.name] = item.group
         if not ignore_item(item) then
-            local icon_data = load_icons(data, {{item.type, item.name}})
+            local icon_data = data._icons[item.type][item.name]
+            assert(icon_data ~= nil)
             local idata = {
                 group = item.group.name,
                 name = item.name,
@@ -290,7 +273,8 @@ local function process_fluids(data, used_fluids)
         assert(data.items[fluid.name] == nil)
         data.groups[fluid.group.name] = fluid.group
         table.insert(data.fluids, fluid.name)
-        local icon_data = load_icons(data, {{"fluid", fluid.name}})
+        local icon_data = data._icons["fluid"][fluid.name]
+        assert(icon_data ~= nil)
         data.items[fluid.name] = {
             group = fluid.group.name,
             name = fluid.name,
@@ -321,17 +305,6 @@ local function process_recipes(data)
                 pmult = recipe.request_paste_multiplier
             end
             
-            icon_paths = {{"recipe", recipe.name}}
-            if #recipe.products == 1 then
-                local product = recipe.products[1]
-                if product.type == "fluid" then
-                    table.insert(icon_paths, {"fluid", product.name})
-                else
-                    local proto = game.item_prototypes[product.name]
-                    table.insert(icon_paths, {proto.type, proto.name})
-                end
-            end
-            
             local products = table.deepcopy(recipe.products)
             for _, product in pairs(products) do
                 if product.amount_min ~= nil and (product.amount_min == product.amount_max) then
@@ -354,7 +327,9 @@ local function process_recipes(data)
                 end
             end
             
-            local icon_data = load_icons(data, icon_paths)
+            local icon_data = data._icons['recipe'][recipe.name]
+            icon_data = icon_data or {} -- recipe icons need resolved in processing
+
             data.recipes[key] = {
                 category = recipe.category,
                 energy_required = recipe.energy,
@@ -419,6 +394,7 @@ local function generate_data()
     table.sort(data.modules)
     
     data._icons = nil
+    data._main_products = nil
     
     data.groups = format_groups(data.groups)
     
