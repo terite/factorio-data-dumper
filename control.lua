@@ -87,6 +87,12 @@ local function get_used_items()
         add_ingredients(item.rocket_launch_products)
     end
 
+    for _, entity in pairs(game.entity_prototypes) do
+        if entity.type == "resource" and entity.mineable_properties.minable then
+            add_ingredients(entity.mineable_properties.products)
+        end
+    end
+
     for _, tech in pairs(game.technology_prototypes) do
         add_ingredients(tech.research_unit_ingredients)
     end
