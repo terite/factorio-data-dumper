@@ -7,6 +7,12 @@ local function round2(num, numDecimalPlaces)
   return tonumber(string.format("%." .. (numDecimalPlaces or 0) .. "f", num))
 end
 
+local function belt_throughput(belt_speed)
+    -- convert speed from tiles-per-tick-per-side to items-per-minute-per-belt
+    -- https://wiki.factorio.com/Transport_belts/Physics
+    return belt_speed * 60 * 60 * 2 / (9/32)
+end
+
 local function get_allowed(tbl)
     if tbl == nil then
         return nil
@@ -33,6 +39,7 @@ local function format_magnitude(amount, suffixes)
 end
 
 local function format_watts(watts)
+    watts = watts * 60 -- convert from joules/tick to joules/sec
     return format_magnitude(watts, {"W", "kW", "MW", "GW", "TW", "PW"})
 end
 
@@ -107,133 +114,125 @@ local function get_used_items()
     return used_items, used_fluids
 end
 
-local function process_entities(data)
-    local entity_map = {
-        ["assembling-machine"] = {},
-        ["furnace"] = {},
-        ["mining-drill"] = {},
-        ["offshore-pump"]= {},
-        ["reactor"] = {},
-        ["resource"] = {},
-        ["rocket-silo"] = {},
-        
+local function process_entity(entity)
+    edata = {
+        name = entity.name,
+        localised_name = entity.localised_name,
     }
-    for _, entity in pairs(game.entity_prototypes) do
-        if entity_map[entity.type] ~= nil then
-            local icon_data = data._icons[entity.type][entity.name]
-            assert(icon_data ~= nil) -- entities must have icons
-            edata = {
-                name = entity.name,
-                localised_name = entity.localised_name,
-                icon = icon_data.icon,
-                icon_size = icon_data.icon_size,
-                icons = icon_data.icons
-            }
-            
-            if entity.type == "resource" then
-                edata.category = entity.resource_category
-                local resdata = entity.mineable_properties
-                edata.minable = {}
-                edata.minable.hardness = resdata.hardness
-                edata.minable.mining_time = resdata.mining_time
-                edata.minable.mining_particle = resdata.mining_particle
-                edata.minable.results = table.deepcopy(resdata.products)
-                
-                if resdata.required_fluid ~= nil then
-                    edata.minable.required_fluid = resdata.required_fluid
-                    edata.minable.fluid_amount = resdata.fluid_amount
-                end
-                
-                for _, result in pairs(edata.minable.results) do
-                    if result.type == "item" then
-                        result.type = nil
-                    end
-                end
-            end
-            
-            if entity.type == "mining-drill" then
-                edata.mining_power = entity.mining_power
-                edata.mining_speed = entity.mining_speed
-                edata.resource_categories = get_allowed(entity.resource_categories)
-            end
-            
-            if entity.type == "offshore-pump" then
-                edata.fluid = entity.fluid.name
-                edata.mining_speed = entity.mining_speed
-            end
-            
-            if entity.energy_usage ~= nil then
-                edata.energy_usage = entity.energy_usage * 60
-            end
-            
-            if entity.crafting_categories ~= nil then
-                local crafting_categories = {}
-                for category, allowed in pairs(entity.crafting_categories) do
-                    if allowed then table.insert(crafting_categories, category) end
-                end
-                if #crafting_categories > 0 then
-                    edata.crafting_categories = crafting_categories
-                end
-            end
-            
-            if entity.crafting_speed ~= nil then
-                edata.crafting_speed = entity.crafting_speed
-            end
-            
-            if entity.module_inventory_size ~= nil then
-                edata.module_slots = entity.module_inventory_size
-            end
-            
-            if entity.ingredient_count ~= nil then
-                edata.ingredient_count = entity.ingredient_count
-            end
-            
-            if entity.allowed_effects ~= nil then
-                local allowed_effects = {}
-                for effect, allowed in pairs(entity.allowed_effects) do
-                    if allowed then table.insert(allowed_effects, effect) end
-                end
-                if #allowed_effects > 0 then
-                    edata.allowed_effects = allowed_effects
-                end
-            end
-            
-            if entity.production ~= nil then
-                edata.production = format_watts(entity.production * 60)
-            end
-            
-            if entity.rocket_parts_required ~= nil then
-                edata.rocket_parts_required = entity.rocket_parts_required
-            end
-            
-            if entity_map[entity.type] ~= nil then
-                entity_map[entity.type][entity.name] = edata
-            end
-            
-            edata.energy_source = get_energy_source(entity)
+
+    if entity.energy_usage ~= nil then
+        edata.energy_usage = entity.energy_usage * 60 -- convert from tick to sec
+    end
+    
+    if entity.crafting_categories ~= nil then
+        local crafting_categories = {}
+        for category, allowed in pairs(entity.crafting_categories) do
+            if allowed then table.insert(crafting_categories, category) end
+        end
+        if #crafting_categories > 0 then
+            edata.crafting_categories = crafting_categories
         end
     end
     
-    for key, value in pairs(entity_map) do
-        if data[key] ~= nil then
-            error("Key already exsits in data: " .. key)
+    if entity.crafting_speed ~= nil then
+        edata.crafting_speed = entity.crafting_speed
+    end
+    
+    if entity.module_inventory_size ~= nil then
+        edata.module_slots = entity.module_inventory_size
+    end
+    
+    if entity.ingredient_count ~= nil then
+        edata.ingredient_count = entity.ingredient_count
+    end
+    
+    if entity.allowed_effects ~= nil then
+        local allowed_effects = {}
+        for effect, allowed in pairs(entity.allowed_effects) do
+            if allowed then table.insert(allowed_effects, effect) end
         end
-        data[key] = value
+        if #allowed_effects > 0 then
+            edata.allowed_effects = allowed_effects
+        end
+    end
+    
+    if entity.production ~= nil then
+        edata.production = format_watts(entity.production)
+    end
+    
+    edata.energy_source = get_energy_source(entity)
+
+    if entity.type == "assembling-machine" then
+        -- TODO
+    elseif entity.type == "furnace" then
+        -- TODO
+    elseif entity.type == "mining-drill" then
+        edata.mining_power = entity.mining_power
+        edata.mining_speed = entity.mining_speed
+        edata.resource_categories = get_allowed(entity.resource_categories)
+    elseif entity.type == "offshore-pump" then
+        edata.fluid = entity.fluid.name
+        edata.mining_speed = entity.mining_speed
+    elseif entity.type == "reactor" then
+        -- TODO
+    elseif entity.type == "resource" then
+        edata.category = entity.resource_category
+        local resdata = entity.mineable_properties
+        edata.minable = {}
+        edata.minable.hardness = resdata.hardness
+        edata.minable.mining_time = resdata.mining_time
+        edata.minable.mining_particle = resdata.mining_particle
+        edata.minable.results = table.deepcopy(resdata.products)
+        
+        if resdata.required_fluid ~= nil then
+            edata.minable.required_fluid = resdata.required_fluid
+            edata.minable.fluid_amount = resdata.fluid_amount
+        end
+        
+        for _, result in pairs(edata.minable.results) do
+            if result.type == "item" then
+                result.type = nil
+            end
+        end
+    elseif entity.type == "rocket-silo" then
+        edata.rocket_parts_required = entity.rocket_parts_required
+    elseif entity.type == "transport-belt" then
+        edata.belt_speed = belt_throughput(entity.belt_speed)
+    else
+        return nil
+    end
+
+    return edata
+end
+
+local function process_entities(data)
+    for _, entity in pairs(game.entity_prototypes) do
+        edata = process_entity(entity)
+
+        if edata ~= nil then
+            local icon_data = data._icons[entity.type][entity.name]
+            assert(icon_data ~= nil) -- entities must have icons
+            edata.icon = icon_data.icon
+            edata.icon_size = icon_data.icon_size
+            edata.icons = icon_data.icons
+
+            data[entity.type] = data[entity.type] or {}
+            data[entity.type][entity.name] = edata
+        end
     end
 end
 
-local function ignore_item(item)
-    if item.subgroup.name == "data-dumper-transporter" then return true end
-    if item.subgroup.name == "fill-barrel" then return true end
-    if item.subgroup.name == "empty-barrel" then return true end
-    --if item.has_flag("hidden") then return true end
-    return false
+local function should_collect_item(item)
+    if item.subgroup.name == "data-dumper-transporter" then return false end
+    if item.subgroup.name == "fill-barrel" then return false end
+    if item.subgroup.name == "empty-barrel" then return false end
+    return true
 end
 
 local function process_items(data, used_items)
     for _, item in pairs(used_items) do
         data.groups[item.group.name] = item.group
-        if not ignore_item(item) then
+        if should_collect_item(item) then
             local icon_data = data._icons[item.type][item.name]
             assert(icon_data ~= nil)
             local idata = {
