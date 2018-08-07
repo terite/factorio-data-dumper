@@ -302,6 +302,9 @@ local function process_recipes(data)
     local ignoresubgroup = {
         ["fill-barrel"] = true,
         ["empty-barrel"] = true,
+
+        ["bob-gas-bottle"] = true,
+        ["bob-empty-gas-bottle"] = true,
     }
     data.recipes = {}
 
