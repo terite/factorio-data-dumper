@@ -47,6 +47,21 @@ local function format_joules(joules)
     return format_magnitude(joules, {"J", "kJ", "MJ", "GJ", "TJ", "PJ"})
 end
 
+local function format_products(products)
+    local products = table.deepcopy(products)
+    for _, product in pairs(products) do
+        if product.amount_min ~= nil and (product.amount_min == product.amount_max) then
+            product.amount = product.amount_min
+            product.amount_min = nil
+            product.amount_max = nil
+        end
+        if product.probability == 1 then
+            product.probability = nil
+        end
+    end
+    return products
+end
+
 local function get_energy_source(entity)
     local burner = entity.burner_prototype
     if burner ~= nil then
@@ -151,9 +166,7 @@ local function process_entity(entity)
         for effect, allowed in pairs(entity.allowed_effects) do
             if allowed then table.insert(allowed_effects, effect) end
         end
-        if #allowed_effects > 0 then
-            edata.allowed_effects = allowed_effects
-        end
+        edata.allowed_effects = allowed_effects
     end
     
     if entity.production ~= nil then
@@ -181,7 +194,6 @@ local function process_entity(entity)
         edata.minable = {}
         edata.minable.hardness = resdata.hardness
         edata.minable.mining_time = resdata.mining_time
-        edata.minable.mining_particle = resdata.mining_particle
         edata.minable.results = table.deepcopy(resdata.products)
         
         if resdata.required_fluid ~= nil then
@@ -242,6 +254,7 @@ local function process_items(data, used_items)
                 order = item.order,
                 subgroup = item.subgroup.name,
                 type = item.type,
+                rocket_launch_products = format_products(item.rocket_launch_products),
                 
                 icon = icon_data.icon,
                 icon_size = icon_data.icon_size,
@@ -257,9 +270,7 @@ local function process_items(data, used_items)
                 table.insert(data.modules, item.name)
                 idata.effect = effects
                 idata.category = item.category
-                if #item.limitations > 0 then
-                    idata.limitation = item.limitations
-                end
+                idata.limitation = item.limitations
             end
             
             if item.fuel_category ~= nil then
@@ -289,6 +300,7 @@ local function process_fluids(data, used_fluids)
             order = fluid.order,
             subgroup = fluid.subgroup.name,
             type = "fluid",
+            default_temperature = fluid.default_temperature,
             
             icon = icon_data.icon,
             icon_size = icon_data.icon_size,
@@ -311,32 +323,9 @@ local function process_recipes(data)
     for key, recipe in pairs(game.recipe_prototypes) do
         data.groups[recipe.group.name] = recipe.group
         if ignoresubgroup[recipe.subgroup.name] == nil then
-            local pmult = nil
-            if recipe.request_paste_multiplier ~= 30 then -- 30 is default
-                pmult = recipe.request_paste_multiplier
-            end
             
-            local products = table.deepcopy(recipe.products)
-            for _, product in pairs(products) do
-                if product.amount_min ~= nil and (product.amount_min == product.amount_max) then
-                    product.amount = product.amount_min
-                    product.amount_min = nil
-                    product.amount_max = nil
-                end
-                if product.probability == 1 then
-                    product.probability = nil
-                end
-                if product.type == "item" then
-                    product.type = nil
-                end
-            end            
-            
+            local products = format_products(recipe.products)
             local ingredients = table.deepcopy(recipe.ingredients)
-            for _, ingredient in pairs(ingredients) do
-                if ingredient.type == "item" then
-                    ingredient.type = nil
-                end
-            end
             
             local icon_data = data._icons['recipe'][recipe.name]
             icon_data = icon_data or {} -- recipe icons need resolved in processing
@@ -352,7 +341,6 @@ local function process_recipes(data)
                 main_product = data._main_products[recipe.name],
                 group = recipe.group.name,
                 subgroup = recipe.subgroup.name,
-                requester_paste_multiplier = pmult,
                 type = "recipe",
                 
                 icon = icon_data.icon,
