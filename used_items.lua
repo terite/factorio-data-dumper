@@ -71,6 +71,88 @@ local function get_possible_technology()
     return enabled_tech
 end
 
+local function recipe_consumes_product(recipe, needle)
+    for _, row in ipairs(recipe.ingredients) do
+        if (row.name == needle.name and row.type == needle.type) then
+            return true
+        end
+    end
+    return false
+end
+
+local function items_match(ingredients, products)
+    if #ingredients ~= #products then
+        return false
+    end
+    item_set = {}
+    for _, ing in ipairs(ingredients) do
+        item_set[ing.name] = true
+    end
+    
+    for _, prod in ipairs(products) do
+        if item_set[prod.name] == nil then
+            return false
+        end
+        item_set[prod.name] = nil
+    end
+    
+    return len_table(item_set) == 0
+end
+
+local function circular_recipe_partner(recipe1, all_recipes)
+    -- this function expects to be given "barreling" recipes
+    -- and will return the cooresponding "unbarreling" recipe
+    -- assuming no other recipe uses "barreled X"
+    if (#recipe1.products ~= 1) then
+        return nil
+    end
+
+    local intermediate = recipe1.products[1]
+
+    local recipe2 = nil
+    for _, candidate in pairs(all_recipes) do
+        if recipe_consumes_product(candidate, intermediate) then
+            -- assume "unbarreling" ingredients == "barreling" products
+            if not items_match(recipe1.ingredients, candidate.products) then
+                return nil
+            end
+            
+            if recipe2 ~= nil then
+                -- more than one recipe consumes intermediate, recipe is not part of a solo pair
+                return nil
+            else
+                -- recipe & candidate are a pair, keep searching to ensure a solo pair
+                recipe2 = candidate
+            end
+        end
+    end
+    
+    return recipe2
+end
+
+local function remove_circular_recipes(recipes)
+    -- remove "circular" recipes, where the only consumer of a recipes products
+    -- is a recipe that produces the original inputs
+    -- e.g. barreling, bottling (bobs), converter valves (seablock)
+    to_remove = {}
+    
+    for name, recipe in pairs(recipes) do
+        if to_remove[name] == nil then
+            local partner = circular_recipe_partner(recipe, recipes)
+            if (partner ~= nil) then
+                to_remove[recipe.name] = true
+                to_remove[partner.name] = true
+            end
+        end
+    end
+    
+    for name, _ in pairs(to_remove) do
+        recipes[name] = nil
+    end
+    
+    return recipes
+end
+
 local function get_possible_recipes(possible_tech)
     recipes = {}
     
@@ -91,6 +173,7 @@ local function get_possible_recipes(possible_tech)
         end
     end
     
+    recipes = remove_circular_recipes(recipes)
     return recipes
 end
 
