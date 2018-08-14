@@ -1,7 +1,9 @@
-local json = require("json")
-
 -- for table.deepcopy
 require("util")
+
+local json = require("json")
+
+local get_used_items = require("used_items")
 
 local function round2(num, numDecimalPlaces)
   return tonumber(string.format("%." .. (numDecimalPlaces or 0) .. "f", num))
@@ -26,6 +28,12 @@ local function get_allowed(tbl)
     else
         return nil 
     end
+end
+
+local function len_table(tbl)
+    count = 0
+    for _ in pairs(tbl) do count = count + 1 end
+    return count
 end
 
 local function format_magnitude(amount, suffixes)
@@ -75,58 +83,6 @@ local function get_energy_source(entity)
     end
     
     return nil
-end
-
-local function get_used_items()
-    used_items = {}
-    used_fluids = {}
-
-    local function add_ingredients(list)
-        for _, entry in pairs(list) do
-            if entry.type == 'fluid' then
-                used_fluids[entry.name] = true
-            else
-                used_items[entry.name] = true
-            end
-        end
-    end
-
-    local function add_prototypes(list)
-        for _, proto in pairs(list) do
-            used_items[proto.name] = true
-        end
-    end
-
-    for _, recipe in pairs(game.recipe_prototypes) do
-        add_ingredients(recipe.ingredients)
-        add_ingredients(recipe.products)
-    end
-
-    for _, item in pairs(game.item_prototypes) do
-        if item.burnt_result then
-            used_items[item.burnt_result.name] = true
-        end
-        add_ingredients(item.rocket_launch_products)
-    end
-
-    for _, entity in pairs(game.entity_prototypes) do
-        if entity.type == "resource" and entity.mineable_properties.minable then
-            add_ingredients(entity.mineable_properties.products)
-        end
-    end
-
-    for _, tech in pairs(game.technology_prototypes) do
-        add_ingredients(tech.research_unit_ingredients)
-    end
-
-    for key, _ in pairs(used_items) do
-        used_items[key] = game.item_prototypes[key]
-    end
-    for key, _ in pairs(used_fluids) do
-        used_fluids[key] = game.fluid_prototypes[key]
-    end
-
-    return used_items, used_fluids
 end
 
 local function process_entity(entity)
@@ -310,7 +266,7 @@ local function process_fluids(data, used_fluids)
     end
 end
 
-local function process_recipes(data)
+local function process_recipes(data, recipes)
     local ignoresubgroup = {
         ["fill-barrel"] = true,
         ["empty-barrel"] = true,
@@ -320,7 +276,7 @@ local function process_recipes(data)
     }
     data.recipes = {}
 
-    for key, recipe in pairs(game.recipe_prototypes) do
+    for key, recipe in pairs(recipes) do
         data.groups[recipe.group.name] = recipe.group
         if ignoresubgroup[recipe.subgroup.name] == nil then
             
@@ -382,9 +338,12 @@ local function generate_data()
     data._icons = storage.icons
     data._main_products = storage.main_products
 
-    used_items, used_fluids = get_used_items()
+    used_items, used_fluids, possible_recipes = get_used_items()
+    game.print("used_items:" .. len_table(used_items))
+    game.print("used_fluids:" .. len_table(used_fluids))
+    game.print("possible_recipes:" .. len_table(possible_recipes))
 
-    process_recipes(data)
+    process_recipes(data, possible_recipes)
     process_entities(data)
     process_items(data, used_items)
     process_fluids(data, used_fluids)
