@@ -11,6 +11,7 @@ for _, protos in pairs(data.raw) do
         storage.icons[proto.type][proto.name] = {
             icon = proto.icon,
             icon_size = proto.icon_size,
+            icon_mipmaps = proto.icon_mipmaps,
             icons = proto.icons
         }
     end
@@ -26,16 +27,28 @@ for _, recipe in pairs(data.raw['recipe']) do
     end
 end
 
-data:extend({
-    {
+local encoded = json.encode(storage)
+local startpos = 0
+local entitynum = 1
+local transport_entities = {}
+while ( startpos <= #encoded )
+do
+    local section = string.sub(encoded, startpos + 1, startpos + 200)
+
+    table.insert(transport_entities, {
       flags = {"hidden"},
       icon_size = 32,
       icon = "__base__/graphics/icons/accumulator.png",
-      name = "data-dumper-transporter",
+      name = "data-dumper-transporter-" .. entitynum,
       order = "z",
       stack_size = 50,
       subgroup = "energy",
       type = "item",
-      localised_name = { json.encode(storage) }
-    }
-})
+      localised_name = { section }
+    })
+
+    startpos = startpos + 200
+    entitynum = entitynum + 1
+end
+
+data:extend(transport_entities)

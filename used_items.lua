@@ -173,7 +173,7 @@ local function get_possible_recipes(possible_tech)
         end
     end
     
-    recipes = remove_circular_recipes(recipes)
+    -- recipes = remove_circular_recipes(recipes)
     return recipes
 end
 

@@ -9,10 +9,8 @@ local function round2(num, numDecimalPlaces)
   return tonumber(string.format("%." .. (numDecimalPlaces or 0) .. "f", num))
 end
 
-local function belt_throughput(belt_speed)
-    -- convert speed from tiles-per-tick-per-side to items-per-minute-per-belt
-    -- https://wiki.factorio.com/Transport_belts/Physics
-    return belt_speed * 60 * 60 * 2 / (9/32)
+local function starts_with(str, start)
+   return str:sub(1, #start) == start
 end
 
 local function get_allowed(tbl)
@@ -75,7 +73,7 @@ local function get_energy_source(entity)
     if burner ~= nil then
         -- we only support 1 fuel category for now
         local fuel_categories = get_allowed(burner.fuel_categories)
-        assert(#fuel_categories == 1)
+        -- assert(#fuel_categories == 1)
         return {
             fuel_category = fuel_categories[1],
             type = "burner"
@@ -133,10 +131,12 @@ local function process_entity(entity)
 
     if entity.type == "assembling-machine" then
         -- TODO
+    elseif entity.type == "boiler" then
+        -- TODO
     elseif entity.type == "furnace" then
         -- TODO
     elseif entity.type == "mining-drill" then
-        edata.mining_power = entity.mining_power
+        -- edata.mining_power = entity.mining_power
         edata.mining_speed = entity.mining_speed
         edata.resource_categories = get_allowed(entity.resource_categories)
     elseif entity.type == "offshore-pump" then
@@ -165,7 +165,7 @@ local function process_entity(entity)
     elseif entity.type == "rocket-silo" then
         edata.rocket_parts_required = entity.rocket_parts_required
     elseif entity.type == "transport-belt" then
-        edata.belt_speed = belt_throughput(entity.belt_speed)
+        edata.speed = entity.belt_speed
     else
         return nil
     end
@@ -182,6 +182,7 @@ local function process_entities(data)
             assert(icon_data ~= nil) -- entities must have icons
             edata.icon = icon_data.icon
             edata.icon_size = icon_data.icon_size
+            edata.icon_mipmaps = icon_data.icon_mipmaps
             edata.icons = icon_data.icons
 
             data[entity.type] = data[entity.type] or {}
@@ -191,9 +192,9 @@ local function process_entities(data)
 end
 
 local function should_collect_item(item)
-    if item.subgroup.name == "data-dumper-transporter" then return false end
-    if item.subgroup.name == "fill-barrel" then return false end
-    if item.subgroup.name == "empty-barrel" then return false end
+    if starts_with(item.name, "data-dumper-transporter") then return false end
+    -- if item.subgroup.name == "fill-barrel" then return false end
+    -- if item.subgroup.name == "empty-barrel" then return false end
     return true
 end
 
@@ -214,6 +215,7 @@ local function process_items(data, used_items)
                 
                 icon = icon_data.icon,
                 icon_size = icon_data.icon_size,
+                icon_mipmaps = icon_data.icon_mipmaps,
                 icons = icon_data.icons
             }
             
@@ -249,7 +251,8 @@ local function process_fluids(data, used_fluids)
         table.insert(data.fluids, fluid.name)
         local icon_data = data._icons["fluid"][fluid.name]
         assert(icon_data ~= nil)
-        data.items[fluid.name] = {
+
+        local idata = {
             group = fluid.group.name,
             name = fluid.name,
             localised_name = fluid.localised_name,
@@ -260,19 +263,26 @@ local function process_fluids(data, used_fluids)
             
             icon = icon_data.icon,
             icon_size = icon_data.icon_size,
+            icon_mipmaps = icon_data.icon_mipmaps,
             icons = icon_data.icons
         }
+
+        idata.max_temperature = fluid.max_temperature
+        idata.fuel_value = fluid.fuel_value
+        idata.heat_capacity = fluid.heat_capacity
+
+        data.items[fluid.name] = idata
         
     end
 end
 
 local function process_recipes(data, recipes)
     local ignoresubgroup = {
-        ["fill-barrel"] = true,
-        ["empty-barrel"] = true,
+        -- ["fill-barrel"] = true,
+        -- ["empty-barrel"] = true,
 
-        ["bob-gas-bottle"] = true,
-        ["bob-empty-gas-bottle"] = true,
+        -- ["bob-gas-bottle"] = true,
+        -- ["bob-empty-gas-bottle"] = true,
     }
     data.recipes = {}
 
@@ -301,6 +311,7 @@ local function process_recipes(data, recipes)
                 
                 icon = icon_data.icon,
                 icon_size = icon_data.icon_size,
+                icon_mipmaps = icon_data.icon_mipmaps,
                 icons = icon_data.icons
                 
             }
@@ -324,6 +335,25 @@ local function format_groups(groups)
     return formatted
 end
 
+local function get_storage()
+    local prefix = "data-dumper-transporter-"
+
+    local acc = {}
+    for name, item in pairs(game.item_prototypes) do
+        if starts_with(item.name, prefix) then
+            local num = tonumber(item.name:sub(#prefix + 1))
+            acc[num] = item.localised_name[1]
+        end
+    end
+
+    local accstr = ""
+    for index, str in pairs(acc) do
+        accstr = accstr .. str
+    end
+
+    return json.decode(accstr)
+end
+
 local function generate_data()
     local data = {
         active_mods = game.active_mods,
@@ -333,8 +363,9 @@ local function generate_data()
         fuel = {},
         modules = {},
     }
+
+    local storage = get_storage()
     
-    storage = json.decode(game.item_prototypes["data-dumper-transporter"].localised_name[1])
     data._icons = storage.icons
     data._main_products = storage.main_products
 
