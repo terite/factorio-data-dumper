@@ -203,13 +203,10 @@ local function get_used_items()
         
         item = game.item_prototypes[name]
         used_items[name] = item
-        
-        for _, item in pairs(game.item_prototypes) do
-            if item.burnt_result then
-                add_item(item.burnt_result.name)
-            end
-            add_ingredients(item.rocket_launch_products)
+        if item.burnt_result then
+            add_item(item.burnt_result.name)
         end
+        add_ingredients(item.rocket_launch_products)
     end
 
     add_ingredients = function(list)
