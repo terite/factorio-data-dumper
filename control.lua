@@ -400,6 +400,10 @@ end)
 script.on_nth_tick(1, function()
     script.on_nth_tick(1, nil)
 
-    game.write_file("gamedata.json", generate_data())
-    print("Dumped to gamedata.json")
+    log("Computing game data...")
+    local gamedata = generate_data()
+
+    log("Writing gamedata.json...")
+    game.write_file("gamedata.json", gamedata)
+    log("Done writing gamedata.json")
 end)
