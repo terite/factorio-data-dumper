@@ -29,7 +29,7 @@ local function get_allowed(tbl)
 end
 
 local function len_table(tbl)
-    count = 0
+    local count = 0
     for _ in pairs(tbl) do count = count + 1 end
     return count
 end
@@ -369,7 +369,7 @@ local function generate_data()
     data._icons = storage.icons
     data._main_products = storage.main_products
 
-    used_items, used_fluids, possible_recipes = get_used_items()
+    local used_items, used_fluids, possible_recipes = get_used_items()
     game.print("used_items:" .. len_table(used_items))
     game.print("used_fluids:" .. len_table(used_fluids))
     game.print("possible_recipes:" .. len_table(possible_recipes))

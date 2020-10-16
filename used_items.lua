@@ -1,26 +1,26 @@
 
 local function len_table(tbl)
-    count = 0
+    local count = 0
     for _ in pairs(tbl) do count = count + 1 end
     return count
 end
 
 local function get_possible_technology()
 
-    locked_tech = {}
+    local locked_tech = {}
     for name, proto in pairs(game.technology_prototypes) do
         locked_tech[name] = proto
     end
     
-    enabled_tech = {}
-    disabled_tech = {}
+    local enabled_tech = {}
+    local disabled_tech = {}
 
     while true do
-        did_anything = false
+        local did_anything = false
         
         for name, tech in pairs(game.technology_prototypes) do
             if (enabled_tech[name] == nil) and (disabled_tech[name] == nil) then
-                num_prereqs = len_table(tech.prerequisites)
+                local num_prereqs = len_table(tech.prerequisites)
                 if not tech.enabled then
                     -- tech is disabled directly
                     disabled_tech[name] = tech
@@ -30,8 +30,8 @@ local function get_possible_technology()
                     did_anything = true
                 else
                     -- check all its prereqs
-                    any_disabled = false
-                    num_enabled = 0
+                    local any_disabled = false
+                    local num_enabled = 0
                     for subname in pairs(tech.prerequisites) do
                         if disabled_tech[subname] ~= nil then
                             any_disabled = true
@@ -154,7 +154,7 @@ local function remove_circular_recipes(recipes)
 end
 
 local function get_possible_recipes(possible_tech)
-    recipes = {}
+    local recipes = {}
     
     -- recipes enabled at game start
     for name, recipe in pairs(game.recipe_prototypes) do
@@ -167,7 +167,7 @@ local function get_possible_recipes(possible_tech)
     for _, tech in pairs(possible_tech) do
         for _, effect in ipairs(tech.effects) do
             if effect.type == "unlock-recipe" then
-                recipe = game.recipe_prototypes[effect.recipe]
+                local recipe = game.recipe_prototypes[effect.recipe]
                 recipes[recipe.name] = recipe
             end
         end
@@ -178,8 +178,8 @@ local function get_possible_recipes(possible_tech)
 end
 
 local function get_used_items()
-    possible_tech = get_possible_technology()
-    possible_recipes = get_possible_recipes(possible_tech)
+    local possible_tech = get_possible_technology()
+    local possible_recipes = get_possible_recipes(possible_tech)
 
     local used_items = {}
     local used_fluids = {}
@@ -201,7 +201,7 @@ local function get_used_items()
             return
         end
         
-        item = game.item_prototypes[name]
+        local item = game.item_prototypes[name]
         used_items[name] = item
         if item.burnt_result then
             add_item(item.burnt_result.name)
