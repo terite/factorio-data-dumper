@@ -4,8 +4,7 @@
 	"title": "Factorio Data Dumper",
 	"author": "terite",
 	"description": "Dumps prototype data so that it can be read by KirkMcDonald's factorio calculator",
-	"factorio_version": "0.16",
+	"factorio_version": "1.0",
 	"dependencies": [
-		"? SeaBlock"
 	  ]
 }

@@ -123,9 +123,10 @@ local function process_entity(entity)
         edata.allowed_effects = allowed_effects
     end
     
-    if entity.production ~= nil then
-        edata.production = format_watts(entity.production)
-    end
+    -- if entity.power_production ~= nil then
+    --     edata.power_production = format_watts(entity.power_production)
+    --     edata.production = format_watts(entity.power_production)
+    -- end
     
     edata.energy_source = get_energy_source(entity)
 
